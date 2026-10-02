@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Run Evaluation Script",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/evaluate_accuracy.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Detector Smoke Test",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/server/pipeline/mahalanobis_detector.py",
+            "args": ["--audio", "test_sample.wav"],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}

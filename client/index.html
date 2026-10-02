@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VaniShield AI — Live Call Audio Anti-Spoof Detection</title>
+<style>
+  :root{
+    --bg:#F7F4EE; --card:#FFFFFF; --border:#E7E2D6;
+    --text:#1B2233; --text-dim:#6B7280; --text-faint:#9CA3AF;
+    --blue:#2F5FDB; --blue-bg:#EBF1FF;
+    --green:#0F9D63; --green-bg:#E9F9F1; --green-border:#B9EBD2;
+    --red:#E23A4E; --red-bg:#FDECEE; --red-border:#F6C3CA;
+    --amber:#F0A93D; --amber-bg:#FFF6E4;
+    --purple:#8B5CF6; --purple-bg:#F3EEFF;
+    --teal:#12A594; --teal-bg:#E6F9F6;
+    --rose:#F0507A; --rose-bg:#FEEDF1;
+    --insight-bg:#FDF6E7; --insight-border:#F3E3BE;
+    --radius:14px; --shadow:0 1px 2px rgba(20,20,20,.04), 0 1px 10px rgba(20,20,20,.03);
+    --font: ui-sans-serif, "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid var(--border);background:var(--bg);}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand h1{font-size:19px;font-weight:700;margin:0;letter-spacing:-.01em;}
+  .brand p{font-size:12.5px;color:var(--text-dim);margin:1px 0 0;}
+  .topbar-right{display:flex;align-items:center;gap:18px;font-size:13px;color:var(--text-dim);}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px;}
+  .divider{width:1px;height:16px;background:var(--border);}
+
+  .dash{
+    max-width:1480px;margin:0 auto;padding:22px 28px 40px;
+    display:grid;
+    grid-template-columns:1.35fr 1fr;
+    gap:18px;
+    align-items:start;
+  }
+  .col-left,.col-right{display:flex;flex-direction:column;gap:18px;min-width:0;}
+  /* Keep right column content visible without long page scroll */
+  .col-right{position:sticky;top:16px;}
+  @media(max-width:1000px){
+    .dash{grid-template-columns:1fr;}
+    .col-right{position:static;}
+  }
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .card-title{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;}
+  .card-title svg{flex:none;}
+  .live-tag{display:flex;align-items:center;gap:14px;font-size:12.5px;color:var(--text-dim);}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;}
+
+  canvas{display:block;width:100%;max-width:100%;}
+  #waveCanvas{height:140px !important; max-height:140px; background:#fff; border-radius:8px;}
+  #trendCanvas{height:120px !important; max-height:120px;}
+
+  .feat-grid{display:grid;grid-template-columns:repeat(4, 1fr);gap:12px;}
+  @media(max-width:1200px){.feat-grid{grid-template-columns:repeat(2, 1fr);}}
+  @media(max-width:560px){.feat-grid{grid-template-columns:1fr;}}
+  .feat{border:1px solid var(--border);border-radius:12px;padding:14px 15px 12px;min-width:0;}
+  .feat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;}
+  .feat-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:none;}
+  .feat-badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;}
+  .feat-badge.ok{background:var(--green-bg);color:var(--green);}
+  .feat-badge.warn{background:var(--red-bg);color:var(--red);}
+  .feat-name{font-size:12.5px;color:var(--text-dim);margin:2px 0 1px;}
+  .feat-value{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;margin-bottom:8px;}
+  .feat canvas{height:38px !important; max-height:38px; margin-bottom:7px;}
+  .feat-desc{font-size:11.5px;color:var(--text-faint);}
+
+  .detect-box{border-radius:12px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;margin-bottom:18px;transition:background .25s,border-color .25s;}
+  .detect-box.real{background:var(--green-bg);border:1px solid var(--green-border);}
+  .detect-box.spoof{background:var(--red-bg);border:1px solid var(--red-border);}
+  .detect-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:none;}
+  .detect-icon.real{background:var(--green);}
+  .detect-icon.spoof{background:var(--red);}
+  .detect-label{font-size:11.5px;font-weight:700;letter-spacing:.02em;}
+  .detect-label.real{color:var(--green);}
+  .detect-label.spoof{color:var(--red);}
+  .detect-verdict{font-size:16px;font-weight:700;margin:1px 0 2px;}
+  .detect-sub{font-size:12.5px;color:var(--text-dim);}
+
+  .conf-row{display:flex;align-items:center;gap:20px;}
+  .conf-ring{position:relative;width:104px;height:104px;flex:none;}
+  .conf-ring svg{transform:rotate(-90deg);}
+  .conf-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:700;}
+  .conf-label{font-size:12px;color:var(--text-dim);margin-bottom:9px;font-weight:600;}
+  .meta{display:grid;grid-template-columns:1fr;gap:8px;font-size:13px;}
+  .meta div{display:flex;justify-content:space-between;color:var(--text-dim);}
+  .meta b{color:var(--text);font-weight:600;}
+
+  .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:11.5px;color:var(--text-dim);margin-bottom:10px;}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .legend i{width:8px;height:8px;border-radius:50%;display:inline-block;}
+
+  .insight-panel{
+    background:var(--insight-bg);
+    border:1px solid var(--insight-border);
+    border-radius:var(--radius);
+    padding:20px 22px;
+    box-shadow:var(--shadow);
+  }
+  .insight-title{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;margin-bottom:11px;}
+  .insight-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;}
+  .insight-list li{display:flex;gap:9px;font-size:13px;color:var(--text);align-items:flex-start;}
+  .insight-list svg{flex:none;margin-top:2px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M12 2 20 5.5V11c0 5.2-3.4 9.4-8 10.5-4.6-1.1-8-5.3-8-10.5V5.5L12 2Z" fill="var(--blue-bg)" stroke="var(--blue)" stroke-width="1.6" stroke-linejoin="round"/><path d="M8.2 12.3 10.6 14.7 15.6 9.4" stroke="var(--blue)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div><h1>VaniShield AI</h1><p>Live Call Audio Anti-Spoof Detection</p></div>
+  </div>
+  <div class="topbar-right">
+    <span><span class="dot"></span>System Online</span>
+    <span class="divider"></span>
+    <span>Live Call Analysis</span>
+  </div>
+</div>
+
+<div class="dash">
+  <!-- LEFT: waveform + features -->
+  <div class="col-left">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 12h2l2-7 3 14 3-10 2 6 2-3h4" stroke="var(--text)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Audio Waveform
+        </div>
+        <div class="live-tag"><span class="pill"><span class="dot" style="background:var(--green)"></span>Live</span><span id="durLabel">Duration: 0.0s</span></div>
+      </div>
+      <canvas id="waveCanvas" height="140"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 20V10M11 20V4M18 20v-7" stroke="var(--text)" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Feature Analysis
+        </div>
+      </div>
+      <div class="feat-grid" id="featGrid"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: detection + trend + insights -->
+  <div class="col-right">
+    <div class="card">
+      <div class="detect-box real" id="detectBox">
+        <div class="detect-icon real" id="detectIcon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <div class="detect-label real" id="detectLabel">DETECTION RESULT</div>
+          <div class="detect-verdict" id="detectVerdict">WAITING FOR AUDIO</div>
+          <div class="detect-sub" id="detectSub">Connect microphone to begin analysis</div>
+        </div>
+      </div>
+      <div class="conf-label">Confidence</div>
+      <div class="conf-row">
+        <div class="conf-ring">
+          <svg width="104" height="104" viewBox="0 0 104 104">
+            <circle cx="52" cy="52" r="45" fill="none" stroke="var(--border)" stroke-width="9"/>
+            <circle id="confArc" cx="52" cy="52" r="45" fill="none" stroke="var(--green)" stroke-width="9" stroke-linecap="round" stroke-dasharray="282.7" stroke-dashoffset="282.7"/>
+          </svg>
+          <div class="conf-num" id="confNum">—</div>
+        </div>
+        <div class="meta">
+          <div>Call Duration <b id="metaDur">0.0 s</b></div>
+          <div>Sample Rate <b>16 kHz</b></div>
+          <div>Window Size <b>1.6 s</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 17l5-6 4 4 8-9" stroke="var(--text)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Feature Trend (Last 30 Seconds)
+        </div>
+      </div>
+      <div class="legend" id="trendLegend"></div>
+      <canvas id="trendCanvas" height="120"></canvas>
+    </div>
+
+    <div class="insight-panel">
+      <div class="insight-title">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.4.3.5.7.5 1.1v.5h6v-.5c0-.4.1-.8.5-1.1A6 6 0 0 0 12 3Z" stroke="var(--amber)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Key Insights
+      </div>
+      <ul class="insight-list" id="insightList"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+
+const check = c => `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="${c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+function lerp(a,b,t){return a+(b-a)*t;}
+function colorAt(t){
+  t = Math.max(0, Math.min(1, t));
+  const stops=[[47,95,219],[18,165,148],[34,197,94],[234,179,8],[240,120,40],[236,72,120]];
+  const seg=t*(stops.length-1), i=Math.min(Math.floor(seg),stops.length-2), f=seg-i;
+  const [r1,g1,b1]=stops[i], [r2,g2,b2]=stops[i+1];
+  return `rgb(${lerp(r1,r2,f)|0},${lerp(g1,g2,f)|0},${lerp(b1,b2,f)|0})`;
+}
+
+function sizeCanvas(cv){
+  const ratio = window.devicePixelRatio || 1;
+  const cssH = parseFloat(cv.getAttribute('height')) || 150;
+  cv.style.width = '100%';
+  cv.style.height = cssH + 'px';
+  const rect = cv.getBoundingClientRect();
+  const w = Math.max(1, Math.round(rect.width));
+  const h = cssH;
+  if (cv.width !== Math.round(w * ratio) || cv.height !== Math.round(h * ratio)) {
+    cv.width = Math.round(w * ratio);
+    cv.height = Math.round(h * ratio);
+  }
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  cv._drawW = w;
+  cv._drawH = h;
+  return {ctx, w, h};
+}
+
+function getCanvasCtx(cv){
+  if (!cv._drawW || !cv._drawH) sizeCanvas(cv);
+  const ratio = window.devicePixelRatio || 1;
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  return {ctx, w: cv._drawW || 1, h: cv._drawH || 1};
+}
+
+const HIST_LEN = 30;
+const WAVE_BARS = 90;
+
+const features=[
+  {id:'pitch_jitter', name:'Pitch Jitter', unit:'%', min:0, max:2, value:0, color:'#8B5CF6', bg:'var(--purple-bg)', desc:'Cycle-to-cycle pitch variation', icon:'zigzag'},
+  {id:'shimmer', name:'Shimmer', unit:'%', min:0, max:2, value:0, color:'#F0A93D', bg:'var(--amber-bg)', desc:'Amplitude variation between cycles', icon:'speaker'},
+  {id:'spectral_flux', name:'Spectral Flux', unit:'', min:0, max:2, value:0, color:'#2F5FDB', bg:'var(--blue-bg)', desc:'Frame-to-frame spectral change', icon:'sliders'},
+  {id:'glottal', name:'Glottal Spectral Slope', unit:'dB', min:-20, max:0, value:-10, color:'#F0507A', bg:'var(--rose-bg)', desc:'Vocal-fold source spectral tilt', icon:'triangle'},
+  {id:'cpp', name:'Cepstral Peak Performance', unit:'dB', min:0, max:20, value:0, color:'#12A594', bg:'var(--teal-bg)', desc:'Strength of harmonic structure', icon:'pulse'},
+  {id:'biphase', name:'Bi-phase Mark', unit:'', min:0, max:1, value:0, color:'#8B5CF6', bg:'var(--purple-bg)', desc:'Phase coherence / biphase cue', icon:'wave'},
+  {id:'noise_floor', name:'Noise Floor Estimation', unit:'dB', min:-120, max:-40, value:-80, color:'#2F5FDB', bg:'var(--blue-bg)', desc:'Estimated background noise level', icon:'volume'},
+  {id:'rir', name:'Room Impulse Response', unit:'', min:0, max:0.6, value:0, color:'#12A594', bg:'var(--teal-bg)', desc:'Room / channel impulse signature', icon:'target'},
+];
+
+features.forEach(f=>{
+  f.history = Array.from({length: HIST_LEN}, () => f.value);
+});
+
+const domCache = {
+  detectBox: document.getElementById('detectBox'),
+  detectIcon: document.getElementById('detectIcon'),
+  detectLabel: document.getElementById('detectLabel'),
+  detectVerdict: document.getElementById('detectVerdict'),
+  detectSub: document.getElementById('detectSub'),
+  confArc: document.getElementById('confArc'),
+  confNum: document.getElementById('confNum'),
+  insightList: document.getElementById('insightList'),
+  durLabel: document.getElementById('durLabel'),
+  metaDur: document.getElementById('metaDur'),
+  features: {}
+};
+
+const ICONS={
+  wave:'M3 12h2l1.5-5 3 10 2-13 2 8h2l1.5-4 1 4H21',
+  zigzag:'M3 12l3-5 3 5 3-5 3 5 3-5 3 5',
+  speaker:'M4 9h3l4-4v14l-4-4H4z M15 9a3 3 0 0 1 0 6',
+  triangle:'M12 4 21 19H3z M12 10v4 M12 16.5v.1',
+  pulse:'M3 12h4l2-7 3 14 2-9 2 4h5',
+  sliders:'M4 6h10M17 6h3M4 12h3M9 12h11M4 18h13M20 18h0',
+  volume:'M4 9h3l4-4v14l-4-4H4z M17 8l4 8M21 8l-4 8',
+  target:'M12 3v3M12 18v3M3 12h3M18 12h3',
+};
+function iconSvg(name,color){
+  const extra = name==='sliders' ? `<circle cx="9" cy="6" r="1.6" fill="${color}"/><circle cx="15" cy="12" r="1.6" fill="${color}"/><circle cx="15" cy="18" r="1.6" fill="${color}"/>` :
+                name==='target' ? `<circle cx="12" cy="12" r="4.2" stroke="${color}" stroke-width="1.7"/>` : '';
+  return `<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="${ICONS[name]}" stroke="${color}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>${extra}</svg>`;
+}
+
+const grid=document.getElementById('featGrid');
+grid.innerHTML = features.map(f=>`
+  <div class="feat">
+    <div class="feat-top">
+      <div class="feat-icon" style="background:${f.bg}">${iconSvg(f.icon,f.color)}</div>
+      <span class="feat-badge ok" id="badge-${f.id}">Normal</span>
+    </div>
+    <div class="feat-name">${f.name}</div>
+    <div class="feat-value" id="val-${f.id}">${f.value.toFixed(2)} ${f.unit}</div>
+    <canvas id="spark-${f.id}" height="38"></canvas>
+    <div class="feat-desc">${f.desc}</div>
+  </div>`).join('');
+
+features.forEach(f => {
+  domCache.features[f.id] = {
+    val: document.getElementById('val-' + f.id),
+    badge: document.getElementById('badge-' + f.id),
+    spark: document.getElementById('spark-' + f.id)
+  };
+});
+
+function drawSparkline(cv, data, min, max, color){
+  const {ctx, w, h} = getCanvasCtx(cv);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, w, h);
+  ctx.beginPath();
+  data.forEach((v, i)=>{
+    const x = (data.length <= 1) ? 0 : i / (data.length - 1) * w;
+    const y = h - ((v - min) / (max - min || 1)) * h * 0.85 - h * 0.08;
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  });
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.4;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.globalAlpha = 1;
+  ctx.stroke();
+}
+
+const waveCv = document.getElementById('waveCanvas');
+let waveData = Array.from({length: WAVE_BARS}, () => 0.02);
+
+function normalizeWaveform(raw) {
+  if (!raw || !raw.length) {
+    return Array.from({length: WAVE_BARS}, () => 0.02);
+  }
+  let arr = Array.from(raw, v => {
+    const n = Number(v);
+    if (!isFinite(n)) return 0;
+    return Math.abs(n);
+  });
+  if (arr.length !== WAVE_BARS) {
+    const out = new Array(WAVE_BARS);
+    for (let i = 0; i < WAVE_BARS; i++) {
+      const src = (i / (WAVE_BARS - 1)) * (arr.length - 1);
+      const i0 = Math.floor(src);
+      const i1 = Math.min(arr.length - 1, i0 + 1);
+      const t = src - i0;
+      out[i] = arr[i0] * (1 - t) + arr[i1] * t;
+    }
+    arr = out;
+  }
+  let peak = 0;
+  for (let i = 0; i < arr.length; i++) if (arr[i] > peak) peak = arr[i];
+  if (peak > 1e-8) {
+    for (let i = 0; i < arr.length; i++) arr[i] = Math.min(1, arr[i] / peak);
+  }
+  const smooth = new Array(arr.length);
+  for (let i = 0; i < arr.length; i++) {
+    const a = arr[Math.max(0, i - 1)];
+    const b = arr[i];
+    const c = arr[Math.min(arr.length - 1, i + 1)];
+    smooth[i] = a * 0.25 + b * 0.5 + c * 0.25;
+  }
+  for (let i = 0; i < smooth.length; i++) {
+    smooth[i] = Math.max(0.03, Math.min(1, smooth[i]));
+  }
+  return smooth;
+}
+
+function drawWave(){
+  const {ctx, w, h} = getCanvasCtx(waveCv);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, w, h);
+  const n = waveData.length;
+  if (n < 1 || w < 2) return;
+  const gap = 1.5;
+  const slot = w / n;
+  const bw = Math.max(1.5, slot - gap);
+  const mid = h / 2;
+  const maxHalf = h * 0.42;
+  for (let i = 0; i < n; i++) {
+    const v = Math.max(0, Math.min(1, Number(waveData[i]) || 0));
+    const half = Math.max(2, v * maxHalf);
+    const x = i * slot + (slot - bw) / 2;
+    const y = mid - half;
+    const barH = half * 2;
+    const r = Math.min(2.5, bw / 2);
+    ctx.fillStyle = colorAt(i / Math.max(n - 1, 1));
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + bw - r, y);
+    ctx.quadraticCurveTo(x + bw, y, x + bw, y + r);
+    ctx.lineTo(x + bw, y + barH - r);
+    ctx.quadraticCurveTo(x + bw, y + barH, x + bw - r, y + barH);
+    ctx.lineTo(x + r, y + barH);
+    ctx.quadraticCurveTo(x, y + barH, x, y + barH - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+const trendCv = document.getElementById('trendCanvas');
+const trendSeries = ['pitch_jitter','shimmer','spectral_flux','cpp','glottal']
+  .map(id => features.find(f => f.id === id));
+document.getElementById('trendLegend').innerHTML = trendSeries.map(f =>
+  `<span><i style="background:${f.color}"></i>${f.name.split(' ')[0]}</span>`).join('');
+
+function drawTrend(){
+  const {ctx, w, h} = getCanvasCtx(trendCv);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, w, h);
+  trendSeries.forEach(f=>{
+    const norm = f.history.map(v => (v - f.min) / (f.max - f.min || 1) * 20);
+    ctx.beginPath();
+    norm.forEach((v, i)=>{
+      const x = (norm.length <= 1) ? 0 : i / (norm.length - 1) * w;
+      const y = h - (v / 20) * h * 0.85 - h * 0.06;
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    });
+    ctx.strokeStyle = f.color;
+    ctx.lineWidth = 2.4;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.globalAlpha = 1;
+    ctx.stroke();
+  });
+}
+
+function renderInsights(isSpoof){
+  const items = isSpoof ? [
+    'Elevated pitch jitter / shimmer inconsistent with live speech.',
+    'Spectral flux and glottal slope outside typical human ranges.',
+    'Bi-phase mark and cepstral peak indicate synthetic structure.',
+    'Result: signs consistent with synthetic or replayed audio.'
+  ] : [
+    'All 8 features are within normal human ranges.',
+    'Pitch jitter, shimmer and spectral flux show natural variation.',
+    'Glottal slope, CPP and bi-phase mark consistent with live speech.',
+    'Result: likely genuine human voice.'
+  ];
+  domCache.insightList.innerHTML = items.map(t => `<li>${check(isSpoof ? '#E23A4E' : '#0F9D63')}${t}</li>`).join('');
+}
+
+function setState(isSpoof, confidence){
+  domCache.detectBox.className = 'detect-box ' + (isSpoof ? 'spoof' : 'real');
+  domCache.detectIcon.className = 'detect-icon ' + (isSpoof ? 'spoof' : 'real');
+  domCache.detectIcon.innerHTML = isSpoof
+    ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 8v5M12 16.5v.1M4 19h16L12 4 4 19Z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  domCache.detectLabel.className = 'detect-label ' + (isSpoof ? 'spoof' : 'real');
+  domCache.detectVerdict.textContent = isSpoof ? 'SPOOFED VOICE DETECTED' : 'REAL HUMAN VOICE';
+  domCache.detectSub.textContent = isSpoof ? 'Signs of synthetic or replayed audio found' : 'No signs of spoofing detected';
+  domCache.confArc.style.stroke = isSpoof ? 'var(--red)' : 'var(--green)';
+  const conf = confidence != null ? confidence : (isSpoof ? 0.86 : 0.94);
+  const circumference = 2 * Math.PI * 45;
+  domCache.confArc.style.strokeDasharray = circumference;
+  domCache.confArc.style.strokeDashoffset = circumference * (1 - conf);
+  domCache.confNum.textContent = Math.round(conf * 100) + '%';
+
+  const spoofSensitive = ['pitch_jitter','shimmer','spectral_flux','glottal','biphase'];
+  features.forEach(f=>{
+    const cached = domCache.features[f.id];
+    if (cached && cached.badge) {
+      const flagged = isSpoof && spoofSensitive.includes(f.id);
+      cached.badge.textContent = flagged ? 'Check' : 'Normal';
+      cached.badge.className = 'feat-badge ' + (flagged ? 'warn' : 'ok');
+    }
+  });
+  renderInsights(isSpoof);
+}
+
+function sizeAllCanvases(){
+  sizeCanvas(waveCv);
+  sizeCanvas(trendCv);
+  features.forEach(f=>{
+    const cached = domCache.features[f.id];
+    if (cached && cached.spark) sizeCanvas(cached.spark);
+  });
+}
+
+window.addEventListener('resize', ()=>{
+  sizeAllCanvases();
+  drawWave();
+  drawTrend();
+  features.forEach(f => {
+    const cached = domCache.features[f.id];
+    if (cached) drawSparkline(cached.spark, f.history, f.min, f.max, f.color);
+  });
+});
+
+requestAnimationFrame(() => {
+  sizeAllCanvases();
+  drawWave();
+  features.forEach(f => {
+    const cached = domCache.features[f.id];
+    if (cached) drawSparkline(cached.spark, f.history, f.min, f.max, f.color);
+  });
+  drawTrend();
+  renderInsights(false);
+});
+
+function buildWsUrl() {
+  const proto = (window.location.protocol === 'https:') ? 'wss:' : 'ws:';
+  const override = document.body && document.body.getAttribute('data-ws-url');
+  if (override) return override;
+  let host = window.location.host;
+  if (!host || window.location.protocol === 'file:') {
+    host = '127.0.0.1:8000';
+  }
+  return proto + '//' + host + '/ws/audio';
+}
+
+let socket = null;
+let micStarted = false;
+let micStream = null;
+let audioContext = null;
+let processorNode = null;
+let sourceNode = null;
+let reconnectAttempt = 0;
+let reconnectTimer = null;
+let intentionalClose = false;
+let lastWsUrl = '';
+let latestData = null;
+let renderRequested = false;
+
+function handleServerMessage(data) {
+  if (data.error) console.warn('[WS] server error payload:', data.error);
+  if (data.waveform) {
+    waveData = normalizeWaveform(data.waveform);
+    drawWave();
+  }
+  if (data.features) {
+    features.forEach(f => {
+      if (data.features[f.id] !== undefined) {
+        const newVal = data.features[f.id];
+        f.history.shift();
+        f.history.push(newVal);
+        f.value = newVal;
+        const cached = domCache.features[f.id];
+        if (cached) {
+          cached.val.textContent = `${Number(newVal).toFixed(2)} ${f.unit}`.trim();
+          drawSparkline(cached.spark, f.history, f.min, f.max, f.color);
+        }
+      }
+    });
+    drawTrend();
+  }
+  if (data.is_spoof !== undefined && data.confidence !== undefined) {
+    setState(data.is_spoof, data.confidence);
+  }
+  if (data.duration !== undefined) {
+    const d = Number(data.duration).toFixed(1);
+    domCache.durLabel.textContent = 'Duration: ' + d + 's';
+    domCache.metaDur.textContent = d + ' s';
+  }
+}
+
+function connectWebSocket() {
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) return;
+
+  const wsUrl = buildWsUrl();
+  lastWsUrl = wsUrl;
+  console.log('[WS] Connecting →', wsUrl);
+  try {
+    socket = new WebSocket(wsUrl);
+  } catch (e) {
+    console.error('[WS] Failed to construct WebSocket:', e);
+    domCache.detectSub.textContent = 'Invalid WebSocket URL: ' + wsUrl;
+    scheduleReconnect();
+    return;
+  }
+  socket.binaryType = 'arraybuffer';
+
+  socket.onopen = function() {
+    reconnectAttempt = 0;
+    console.log('[WS] Connected:', wsUrl);
+    domCache.detectSub.textContent = 'Connected — starting microphone…';
+    if (!micStarted) startMicrophoneStream();
+    else domCache.detectSub.textContent = 'Microphone streaming — analysis active';
+  };
+  socket.onerror = function() {
+    console.error('[WS] Connection error. URL tried: ' + wsUrl);
+    domCache.detectSub.textContent = 'Cannot reach backend at ' + wsUrl.replace(/^wss?:\/\//, '');
+  };
+  socket.onclose = function(ev) {
+    console.warn('[WS] Closed — code=' + ev.code + ' reason=' + (ev.reason || '(none)'));
+    if (intentionalClose) return;
+    scheduleReconnect();
+  };
+  socket.onmessage = function(event) {
+    try { latestData = JSON.parse(event.data); } catch (e) { return; }
+    if (!renderRequested) {
+      renderRequested = true;
+      requestAnimationFrame(() => {
+        renderRequested = false;
+        if (latestData) handleServerMessage(latestData);
+      });
+    }
+  };
+}
+
+function scheduleReconnect() {
+  const delay = Math.min(8000, 500 * Math.pow(2, reconnectAttempt));
+  reconnectAttempt += 1;
+  domCache.detectSub.textContent =
+    'Backend unreachable — retrying in ' + (delay / 1000).toFixed(1) + 's… (' + lastWsUrl + ')';
+  reconnectTimer = setTimeout(connectWebSocket, delay);
+}
+
+function sendPcm(buffer) {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    try { socket.send(buffer); } catch (e) { console.warn('[WS] send failed', e); }
+  }
+}
+
+async function startMicrophoneStream() {
+  if (micStarted) return;
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: { channelCount: 1, sampleRate: 16000, echoCancellation: true, noiseSuppression: true }
+    });
+    audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    if (audioContext.state === 'suspended') await audioContext.resume();
+    sourceNode = audioContext.createMediaStreamSource(micStream);
+    processorNode = audioContext.createScriptProcessor(4096, 1, 1);
+    let lastSendTime = 0;
+    processorNode.onaudioprocess = function(e) {
+      const now = Date.now();
+      if (now - lastSendTime < 150) return;
+      lastSendTime = now;
+      const inputData = e.inputBuffer.getChannelData(0);
+      const pcm16 = new Int16Array(inputData.length);
+      for (let i = 0; i < inputData.length; i++) {
+        const s = Math.max(-1, Math.min(1, inputData[i]));
+        pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      }
+      sendPcm(pcm16.buffer);
+    };
+    sourceNode.connect(processorNode);
+    const mute = audioContext.createGain();
+    mute.gain.value = 0;
+    processorNode.connect(mute);
+    mute.connect(audioContext.destination);
+    micStarted = true;
+    console.log('[Mic] Streaming active');
+    domCache.detectSub.textContent = 'Microphone streaming — analysis active';
+  } catch (err) {
+    console.error('[Mic] Access denied or unavailable:', err);
+    domCache.detectSub.textContent = 'Microphone permission denied — allow mic access and reload';
+  }
+}
+
+connectWebSocket();
+</script>
+</body>
+</html>

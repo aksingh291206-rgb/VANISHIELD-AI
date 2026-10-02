@@ -1,0 +1,12 @@
+fairseq/
+models/
+local_cache/
+venv/
+*.pth
+*.pt
+*.onnx
+*.onnx.data
+*.wav
+__pycache__/
+ssl_aasist_project/models/
+twilio_audio_pipeline/models/
