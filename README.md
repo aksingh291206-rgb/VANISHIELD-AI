@@ -10,7 +10,7 @@
 > **Project status:** experimental / under active development.
 
 <p align="center">
-  <img src="docs/assets/logo.png" alt="VaniShield AI logo" width="280"/>
+  <img src="docs/assets/logo.jpeg" alt="VaniShield AI logo" width="280"/>
 </p>
 
 ---
@@ -20,12 +20,16 @@
 ### Screenshots
 
 <p align="center">
-  <img src="docs/assets/dashboard-screenshot.png" alt="VaniShield dashboard" width="900"/>
+  <img src="docs/assets/dashboard-screenshot.jpeg" alt="VaniShield dashboard" width="900"/>
 </p>
 
 ### Video Demo
 
-[Watch the demo video](docs/assets/Vanishield-AI.mp4)
+Watch the live demo on YouTube:
+
+**[VaniShield AI Demo](https://youtu.be/TPDqSReP64E)**
+
+> The full recording is hosted on YouTube because the local MP4 is too large to keep in the repository.
 
 ---
 
@@ -38,7 +42,7 @@ It combines high-speed statistical heuristics with optional deep learning so leg
 ### Key capabilities
 
 | Component | Description |
-|-----------|-------------|
+| --- | --- |
 | **Dual-tier pipeline** | Fast Tier-1 statistical gate, with optional Tier-2 deep verification |
 | **Tier-1 analysis** | Mahalanobis-distance detector on forensic acoustic markers (pitch jitter, shimmer, spectral flux, glottal slope, room impulse response, and related cues) |
 | **Tier-2 engine** | SSL-AASIST (self-supervised frontend + spectro-temporal graph attention) for high-precision checks on ambiguous streams |
@@ -99,10 +103,10 @@ pip install -r requirements.txt
 
 ## Models
 
-Place model files under `models/` (local only; do not commit):
+Place model files under `models/` (local only; **do not commit**):
 
 | File | Purpose |
-|------|---------|
+| --- | --- |
 | `models/master_tier1.pth` | Tier-1 baseline / detector weights |
 | `models/SSL_best.pt` | Optional Tier-2 SSL-AASIST checkpoint |
 | `models/streaming_model_int8.onnx` | Quantized streaming ONNX model |
@@ -127,11 +131,11 @@ Organize real and spoof audio by domain:
 
 Before training, document:
 
-- Dataset download instructions  
-- Licenses and attribution  
-- Audio format and sample-rate requirements  
-- Preprocessing and speaker/session split rules  
-- Handling of private or sensitive recordings  
+- Dataset download instructions
+- Licenses and attribution
+- Audio format and sample-rate requirements
+- Preprocessing and speaker/session split rules
+- Handling of private or sensitive recordings
 
 ---
 
@@ -170,11 +174,11 @@ http://localhost:8000/
 
 ### Deployment checklist
 
-- Public HTTPS / WSS endpoint (required for Twilio)  
-- Twilio Media Streams webhook configuration  
-- Authentication for WebSocket connections  
-- Environment variables for thresholds and feature flags  
-- Logging and retention policy for audio and detection results  
+- Public HTTPS / WSS endpoint (required for Twilio)
+- Twilio Media Streams webhook configuration
+- Authentication for WebSocket connections
+- Environment variables for thresholds and feature flags
+- Logging and retention policy for audio and detection results
 
 ---
 
@@ -207,12 +211,12 @@ python test_client.py
 
 Recommended coverage:
 
-- Audio decoding and resampling  
-- Streaming buffer boundaries  
-- Model input/output shapes  
-- Real / spoof threshold behavior  
-- WebSocket connect and disconnect handling  
-- Twilio event payloads  
+- Audio decoding and resampling
+- Streaming buffer boundaries
+- Model input/output shapes
+- Real / spoof threshold behavior
+- WebSocket connect and disconnect handling
+- Twilio event payloads
 
 ### Tier-1 debug (verbose terminal)
 
@@ -224,19 +228,19 @@ For live calls, the backend can print step-by-step Tier-1 math (distance, thresh
 
 Voice data may be biometric or personally identifiable. Before deployment:
 
-- Remove secrets from source and Git history  
-- Avoid storing raw call audio unless required  
-- Define retention, deletion, consent, and access policies  
-- Protect WebSocket endpoints  
-- Validate upload and stream size/format  
-- Treat untrusted model files (e.g. pickle) as unsafe to load  
+- Remove secrets from source and Git history
+- Avoid storing raw call audio unless required
+- Define retention, deletion, consent, and access policies
+- Protect WebSocket endpoints
+- Validate upload and stream size/format
+- Treat untrusted model files (e.g. pickle) as unsafe to load
 
 ---
 
 ## Contributors
 
 | Name | Role |
-|------|------|
+| --- | --- |
 | Amit Kumar Singh | Project lead |
 | Anoop Kumar | Tier-2 engine and testing |
 | Ankit Kumar | Backend / infrastructure |
@@ -263,13 +267,13 @@ Third-party components (including fairseq and model checkpoints) may use separat
 ## References
 
 1. Voice anti-spoofing / deepfake detection — [arXiv:2510.24852](https://doi.org/10.48550/arxiv.2510.24852)
-2. AASIST — [arXiv:2110.01200](https://arxiv.org/abs/2110.01200) · [code](https://github.com/clovaai/aasist)  
+2. **AASIST** — [arXiv:2110.01200](https://arxiv.org/abs/2110.01200) · [code](https://github.com/clovaai/aasist)  
    SSL anti-spoofing (wav2vec 2.0) — [Tak et al.](https://github.com/TakHemlata/SSL_Anti-spoofing)
 3. [fairseq](https://github.com/facebookresearch/fairseq)
-4. [PyTorch docs](https://pytorch.org/docs/)
-5. [ONNX Runtime docs](https://onnxruntime.ai/docs/)
-6. ASVspoof — [asvspoof.org](https://www.asvspoof.org/) · [2019 DB](https://arxiv.org/abs/1911.01601) · [ASVspoof 5](https://zenodo.org/records/14498691)
-7. In-the-Wild deepfakes — [arXiv:2203.16263](https://arxiv.org/abs/2203.16263) · [download](https://deepfake-demo.aisec.fraunhofer.de/in_the_wild)
+4. [PyTorch documentation](https://pytorch.org/docs/)
+5. [ONNX Runtime documentation](https://onnxruntime.ai/docs/)
+6. **ASVspoof** — [asvspoof.org](https://www.asvspoof.org/) · [2019 database](https://arxiv.org/abs/1911.01601) · [ASVspoof 5](https://zenodo.org/records/14498691)
+7. **In-the-Wild deepfakes** — [arXiv:2203.16263](https://arxiv.org/abs/2203.16263) · [download](https://deepfake-demo.aisec.fraunhofer.de/in_the_wild)
 8. [LibriSpeech](https://www.openslr.org/12)
 9. [Web Audio API](https://webaudioapi.com/)
 
