@@ -120,7 +120,6 @@ if not baseline_loaded:
 # Threshold: forced override or calibrated
 if FORCE_TIER1_THRESHOLD is not None:
     tier1_detector.threshold = float(FORCE_TIER1_THRESHOLD)
-    print(f"[*] Tier 1 threshold FORCED to {tier1_detector.threshold}")
 else:
     print(f"[*] Tier 1 threshold (calibrated) = {getattr(tier1_detector, 'threshold', None)}")
 
@@ -218,7 +217,7 @@ def _ensure_tier2_loaded():
 if LIVE_USE_TIER2:
     _ensure_tier2_loaded()
 else:
-    print("[*] Tier 2 not loaded for live path (set VANISHIELD_LIVE_TIER2=1 to enable).")
+    print("[*] Tier 2 not loaded for live path.")
 
 _pool = ThreadPoolExecutor(max_workers=1)
 print("[*] Pipeline ready.")

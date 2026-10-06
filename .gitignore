@@ -10,3 +10,4 @@ venv/
 __pycache__/
 ssl_aasist_project/models/
 twilio_audio_pipeline/models/
+docs/assets/Vanishield-AI.mp4
